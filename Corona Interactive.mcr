@@ -16,6 +16,8 @@
 		- BugFix: Unstoppable Viewport Interactive render
 		* Now  Interactive Viewport  restore user layout
 		+ Added: Interactive Viewport render from active view
+	1.0.3
+		+ Added: Button for open VFB
 */
 
 m = "Corona Interactive Buttons\n\n"
@@ -38,11 +40,19 @@ Icon:#("Render", 1)
 	try(CoronaRenderer.CoronaFp.startInteractive())catch(messageBox "Please assign Corona Renderer" title: "Warning!")
 )
 
+macroScript mcrShowVFB
+category:"[3DDD]" 
+toolTip:"VFB" 
+buttontext:"VFB"
+(	
+	try(CoronaRenderer.CoronaFp.showVfb(true))catch(messageBox "Please assign Corona Renderer" title: "Warning!")
+)
+
 
 macroScript mcrStartInteractiveDocked
 category:"[3DDD]" 
-toolTip:"Viewport Interactive" 
-buttontext:"Viewport Interactive"
+toolTip:"Viewport Interactive                \nPress Shift for reset layout" 
+buttontext:"Viewport Interactive                \nPress Shift for reset layout"
 Icon:#("Render", 8)
 (	
 	iniSetting = getThisScriptFileName() + ".ini"
