@@ -12,6 +12,10 @@
 	1.0.1
 		- BugFix: Interactive Viewport render only locked view
 		* Now Interactive Viewport  restore original layout
+	1.0.2
+		- BugFix: Unstoppable Viewport Interactive render
+		* Now  Interactive Viewport  restore user layout
+		+ Added: Interactive Viewport render from active view
 */
 
 m = "Corona Interactive Buttons\n\n"
@@ -43,46 +47,110 @@ Icon:#("Render", 8)
 (	
 	iniSetting = getThisScriptFileName() + ".ini"
 	
-	fn defaultView = 
-	(				
-		viewport.setType #view_front
-		viewport.setType #view_persp_user 		
-					
-		theAxis = (viewport.getTM()).row1	
-		viewport.rotate (quat 20 theAxis)
-	
-		theAxis = (viewport.getTM()).row3
-		viewport.rotate (quat 40 theAxis)
+	fn saveVpt id =
+	(
+		viewport.activeViewport = id
 		
-		max tool zoomextents all
-		viewport.zoom 0.8
-		
-		displaySafeFrames = true				
+		id = (viewport.GetID id) as string
+		setIniSetting iniSetting id "TYPE"  (viewport.getType() as string)
+		setIniSetting iniSetting id "TM"  (viewport.getTM() as string)
+		setIniSetting iniSetting id "FOV"  (viewport.getFOV() as string)			
+		vs = nitrousgraphicsmanager.GetActiveViewportSetting()
+		setIniSetting iniSetting id "SHADING"  (vs.visualstylemode as string)
+		setIniSetting iniSetting id "CAM" (viewport.getCamera() as string)
+		setIniSetting iniSetting id "SAFEFRAME" (displaySafeFrames as string)
 	)
+	
+	fn saveViewports =
+	(
+		if(viewport.getLayout() == #layout_2v) do return false
+		
+		setIniSetting iniSetting "VIEWPORT" "LAYOUT" (viewport.getLayout() as string)		
+		
+		a = viewport.activeViewport
+		setIniSetting iniSetting "VIEWPORT" "ACTIVE" (a as string)
+		
+		n = viewport.numViews	
+
+		setIniSetting iniSetting "VIEWPORT" "NUM" (n as string) 
+			
+		for id in 1 to n do saveVpt id			
+	)
+	
+	fn restoreVpt id toID: undefined =
+	(
+		viewport.activeViewport = id
+				
+		id =  if(toID == undefined) then  (viewport.GetID id) as string else toID as string
+				
+		s = getIniSetting iniSetting id "TYPE" 
+		if(s != "") do execute("viewport.setType #" + s)
+		s = getIniSetting iniSetting id "TM" 
+		if(s != "") do execute("viewport.setTm" + s)
+		s = getIniSetting iniSetting id "FOV"
+		if(s != "") do viewport.setFov (s as float)
+			
+		vs = nitrousgraphicsmanager.GetActiveViewportSetting()
+		s = getIniSetting iniSetting id "SHADING"
+		if(s != "") do vs.visualstylemode = execute("#" + s)
+		
+		s = getIniSetting iniSetting id "CAM"
+		if(s != "" and s != "undefined") do try(viewport.setCamera (execute(s)))catch()
+			
+		s = getIniSetting iniSetting id "SAFEFRAME"
+		if(s != "" and s != "false") do displaySafeFrames = true
+	)
+	
+	fn restoreViewports =
+	(		
+		s = getIniSetting iniSetting "VIEWPORT" "LAYOUT" 
+		if(s != "") do 
+		(
+			viewport.ResetAllViews()
+			execute("viewport.setLayout #" + s)
+		)
+				
+		s = getIniSetting iniSetting "VIEWPORT" "NUM" 
+		if(s != "") do 
+		(
+			for id in 1 to (s as integer) do restoreVpt id
+		)
+		
+		s = getIniSetting iniSetting "VIEWPORT" "ACTIVE" 
+		if(s != "") do viewport.activeViewport = s as integer				
+	)
+	
 	
 	try
 	(
 		if(keyboard.shiftPressed) then
-		(
-			t = getIniSetting iniSetting "VIEWPORT" "LAYOUT"
-	
-			if(t != "") do execute("viewport.setLayout #" + t)
+		(			
+			restoreViewports()
 		)
 		else
-		(
-			if(viewport.getLayout() != #layout_2v) do setIniSetting iniSetting "VIEWPORT" "LAYOUT" (viewport.getLayout())
-			
-			viewport.ResetAllViews()
-			viewport.setLayout #layout_2v
-			viewport.activeViewport = 2
-			actionMan.executeAction 0 "40406" 
-			viewport.activeViewport = 1
-			rendUseActiveView = true						
-			viewport.setType #view_persp_user
-			
-			defaultView()
+		(				
+			rendUseActiveView = true	
 						
-			CoronaRenderer.CoronaFp.startInteractiveDocked()
+			bInteractive = (viewport.getLayout() != #layout_2v) or (viewport.getLayout() == #layout_2v and viewport.numViews == 2)
+						
+			if(bInteractive) then 
+			(
+				currentId = viewport.GetID (viewport.activeViewport)
+				saveViewports()							
+						
+				viewport.ResetAllViews()
+				viewport.setLayout #layout_2v
+			
+				viewport.activeViewport = 2
+				actionMan.executeAction 0 "40406" 
+											
+				restoreVpt 1 toID: currentId
+				
+				forceCompleteRedraw()	
+				CoronaRenderer.CoronaFp.startInteractiveDocked() 				
+			)
+				
+			CoronaRenderer.CoronaFp.startInteractiveDocked() 
 		)
 	)catch(messageBox "Please assign Corona Renderer" title: "Warning!")
 )
