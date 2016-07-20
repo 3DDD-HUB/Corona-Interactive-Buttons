@@ -1,7 +1,7 @@
 /*
 	Corona quick interactive buttons
 	MastaMan
-	v.1.0.1
+	v.1.0.4
 	
 	Press shift and click to Viewport Interactive for reset layout!
 	
@@ -18,6 +18,8 @@
 		+ Added: Interactive Viewport render from active view
 	1.0.3
 		+ Added: Button for open VFB
+	1.0.4
+		- BugFix: 3Ds Max hanging
 */
 
 m = "Corona Interactive Buttons\n\n"
@@ -37,7 +39,8 @@ toolTip:"Start Interactive"
 buttontext:"Start Interactive"
 Icon:#("Render", 1)
 (	
-	try(CoronaRenderer.CoronaFp.startInteractive())catch(messageBox "Please assign Corona Renderer" title: "Warning!")
+	r = renderers.current
+	if(classOf r == CoronaRenderer) then (CoronaRenderer.CoronaFp.startInteractive()) else (messageBox "Please assign Corona Renderer" title: "Warning!")
 )
 
 macroScript mcrShowVFB
@@ -45,16 +48,20 @@ category:"[3DDD]"
 toolTip:"VFB" 
 buttontext:"VFB"
 (	
-	try(CoronaRenderer.CoronaFp.showVfb(true))catch(messageBox "Please assign Corona Renderer" title: "Warning!")
+	r = renderers.current
+	if(classOf r == CoronaRenderer) then (CoronaRenderer.CoronaFp.showVfb(true)) else (messageBox "Please assign Corona Renderer" title: "Warning!")
 )
 
 
 macroScript mcrStartInteractiveDocked
 category:"[3DDD]" 
-toolTip:"Viewport Interactive                \nPress Shift for reset layout" 
-buttontext:"Viewport Interactive                \nPress Shift for reset layout"
+toolTip:"Viewport Interactive / Press Shift for reset layout" 
+buttontext:"Viewport Interactive / Press Shift for reset layout"
 Icon:#("Render", 8)
 (	
+	r = renderers.current
+	if(classOf r != CoronaRenderer) do return (messageBox "Please assign Corona Renderer" title: "Warning!")
+	
 	iniSetting = getThisScriptFileName() + ".ini"
 	
 	fn saveVpt id =
